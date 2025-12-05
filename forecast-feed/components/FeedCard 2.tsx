@@ -54,25 +54,12 @@ export function FeedCard({ item }: FeedCardProps) {
       return;
     }
 
-    // If no contract deployed, just open the market with transaction ID
+    // If no contract deployed, just open the market
     if (!COPY_TRADE_ADDRESS) {
-      // Use tradeId if available, otherwise fall back to timestamp in milliseconds
-      const tid = item.tradeId || new Date(item.timestamp).getTime().toString();
-      
-      // Build Polymarket URL - prefer eventSlug, then marketSlug, with correct format
-      let url: string;
-      if (item.market.eventSlug) {
-        // Use event URL format: /event/{event-slug}
-        url = `https://polymarket.com/event/${item.market.eventSlug}${tid ? `?tid=${tid}` : ""}`;
-      } else if (item.market.marketSlug) {
-        // Use market URL format: /market/{market-slug}
-        url = `https://polymarket.com/market/${item.market.marketSlug}${tid ? `?tid=${tid}` : ""}`;
-      } else {
-        // Fallback: try to use conditionId as slug (may not work, but better than nothing)
-        url = `https://polymarket.com/market/${item.market.conditionId}${tid ? `?tid=${tid}` : ""}`;
-      }
-      
-      window.open(url, "_blank");
+      window.open(
+        `https://polymarket.com/event/${item.market.marketSlug}`,
+        "_blank"
+      );
       setCopyStatus("success");
       setTimeout(() => setCopyStatus("idle"), 2000);
       return;
@@ -182,7 +169,7 @@ export function FeedCard({ item }: FeedCardProps) {
 
       <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
         <div className="flex items-center gap-4 text-xs text-neutral-400">
-          <span>Vol {formatUSD(parseFloat(item.market.volume || "0"))}</span>
+          <span>Vol {formatUSD(item.market.volume)}</span>
           {item.transactionHash && (
             <a
               href={`https://polygonscan.com/tx/${item.transactionHash}`}

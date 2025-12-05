@@ -129,3 +129,4 @@ contract CopyTrade {
         return _userTrades[user].length;
     }
 }
+

@@ -44,6 +44,7 @@ interface PolymarketMarket {
   image?: string;
   slug?: string;
   marketSlug?: string;
+  eventSlug?: string;
   conditionId?: string;
   clobTokenIds?: string[];
   active?: boolean;
@@ -133,16 +134,48 @@ export async function GET(request: Request) {
       if (market.conditionId) {
         tokenToMarket.set(market.conditionId, market);
       }
+      // Also map by market ID
+      if (market.id) {
+        tokenToMarket.set(market.id, market);
+      }
     }
+
+    // Helper function to fetch individual market data if needed
+    const fetchMarketData = async (conditionId: string): Promise<PolymarketMarket | null> => {
+      if (!conditionId || conditionId === "unknown") return null;
+      try {
+        const response = await fetch(`${GAMMA_API}/markets/${conditionId}`, {
+          headers: { 
+            "Accept": "application/json",
+            "User-Agent": "ForecastFeed/1.0"
+          },
+        });
+        if (response.ok) {
+          return await response.json();
+        }
+      } catch (error) {
+        console.error(`Failed to fetch market ${conditionId}:`, error);
+      }
+      return null;
+    };
 
     // Build feed items
     // Data API includes market info directly in trade response
-    const feedItems = trades.map((trade, index) => {
+    const feedItems = await Promise.all(trades.map(async (trade, index) => {
       // Try to get additional market info from our fetched markets
-      const market = tokenToMarket.get(trade.conditionId || "") || 
-                     tokenToMarket.get(trade.asset || "") ||
-                     tokenToMarket.get(trade.asset_id || "") || 
-                     tokenToMarket.get(trade.market || "");
+      let market = tokenToMarket.get(trade.conditionId || "") || 
+                   tokenToMarket.get(trade.asset || "") ||
+                   tokenToMarket.get(trade.asset_id || "") || 
+                   tokenToMarket.get(trade.market || "");
+      
+      // If market not found or volume is missing/zero, try to fetch individual market data
+      const conditionId = trade.conditionId || trade.asset || trade.asset_id || trade.market;
+      if ((!market || !market.volume || market.volume === "0") && conditionId) {
+        const fetchedMarket = await fetchMarketData(conditionId);
+        if (fetchedMarket) {
+          market = fetchedMarket;
+        }
+      }
       
       // Convert timestamp (Unix seconds) to ISO string
       const timestampStr = trade.timestamp 
@@ -151,6 +184,10 @@ export async function GET(request: Request) {
       
       // Get trade ID for Polymarket URL tid parameter (use id if available, otherwise timestamp in ms)
       const tradeId = trade.id || (trade.timestamp ? String(trade.timestamp * 1000) : undefined);
+      
+      // Determine URL slug - prefer eventSlug from trade, then slug from trade, then slug from market
+      const eventSlug = trade.eventSlug || "";
+      const marketSlug = trade.slug || market?.slug || market?.marketSlug || "";
       
       return {
         id: trade.transactionHash || trade.transaction_hash || trade.id || `trade-${index}-${Date.now()}`,
@@ -170,7 +207,8 @@ export async function GET(request: Request) {
           icon: trade.icon || "",
           active: market?.active ?? true,
           closed: market?.closed ?? false,
-          marketSlug: trade.slug || market?.slug || market?.marketSlug || "",
+          marketSlug: marketSlug,
+          eventSlug: eventSlug,
           conditionId: trade.conditionId || market?.conditionId || trade.market || trade.asset_id || "",
         },
         outcome: trade.outcome || "Yes",
@@ -181,7 +219,7 @@ export async function GET(request: Request) {
         transactionHash: trade.transactionHash || trade.transaction_hash,
         tradeId: tradeId,
       };
-    });
+    }));
 
     return NextResponse.json(feedItems);
   } catch (error) {
@@ -283,13 +321,45 @@ export async function POST(request: Request) {
       if (market.conditionId) {
         tokenToMarket.set(market.conditionId, market);
       }
+      // Also map by market ID
+      if (market.id) {
+        tokenToMarket.set(market.id, market);
+      }
     }
 
-    const feedItems = filteredTrades.map((trade, index) => {
-      const market = tokenToMarket.get(trade.conditionId || "") || 
-                     tokenToMarket.get(trade.asset || "") ||
-                     tokenToMarket.get(trade.asset_id || "") || 
-                     tokenToMarket.get(trade.market || "");
+    // Helper function to fetch individual market data if needed
+    const fetchMarketData = async (conditionId: string): Promise<PolymarketMarket | null> => {
+      if (!conditionId || conditionId === "unknown") return null;
+      try {
+        const response = await fetch(`${GAMMA_API}/markets/${conditionId}`, {
+          headers: { 
+            "Accept": "application/json",
+            "User-Agent": "ForecastFeed/1.0"
+          },
+        });
+        if (response.ok) {
+          return await response.json();
+        }
+      } catch (error) {
+        console.error(`Failed to fetch market ${conditionId}:`, error);
+      }
+      return null;
+    };
+
+    const feedItems = await Promise.all(filteredTrades.map(async (trade, index) => {
+      let market = tokenToMarket.get(trade.conditionId || "") || 
+                   tokenToMarket.get(trade.asset || "") ||
+                   tokenToMarket.get(trade.asset_id || "") || 
+                   tokenToMarket.get(trade.market || "");
+      
+      // If market not found or volume is missing/zero, try to fetch individual market data
+      const conditionId = trade.conditionId || trade.asset || trade.asset_id || trade.market;
+      if ((!market || !market.volume || market.volume === "0") && conditionId) {
+        const fetchedMarket = await fetchMarketData(conditionId);
+        if (fetchedMarket) {
+          market = fetchedMarket;
+        }
+      }
       
       // Convert timestamp (Unix seconds) to ISO string
       const timestampStr = trade.timestamp 
@@ -298,6 +368,10 @@ export async function POST(request: Request) {
       
       // Get trade ID for Polymarket URL tid parameter (use id if available, otherwise timestamp in ms)
       const tradeId = trade.id || (trade.timestamp ? String(trade.timestamp * 1000) : undefined);
+      
+      // Determine URL slug - prefer eventSlug from trade, then slug from trade, then slug from market
+      const eventSlug = trade.eventSlug || "";
+      const marketSlug = trade.slug || market?.slug || market?.marketSlug || "";
       
       return {
         id: trade.transactionHash || trade.transaction_hash || trade.id || `trade-${index}-${Date.now()}`,
@@ -317,7 +391,8 @@ export async function POST(request: Request) {
           icon: trade.icon || "",
           active: market?.active ?? true,
           closed: market?.closed ?? false,
-          marketSlug: trade.slug || market?.slug || market?.marketSlug || "",
+          marketSlug: marketSlug,
+          eventSlug: eventSlug,
           conditionId: trade.conditionId || market?.conditionId || trade.market || trade.asset_id || "",
         },
         outcome: trade.outcome || "Yes",
@@ -328,7 +403,7 @@ export async function POST(request: Request) {
         transactionHash: trade.transactionHash || trade.transaction_hash,
         tradeId: tradeId,
       };
-    });
+    }));
 
     return NextResponse.json(feedItems);
   } catch (error) {

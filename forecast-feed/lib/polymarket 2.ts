@@ -18,7 +18,6 @@ export interface Market {
   active: boolean;
   closed: boolean;
   marketSlug: string;
-  eventSlug?: string;
   conditionId: string;
 }
 
@@ -85,7 +84,6 @@ export interface FeedItem {
   price: string;
   timestamp: string;
   transactionHash?: string;
-  tradeId?: string;
 }
 
 // Fetch active markets from Polymarket

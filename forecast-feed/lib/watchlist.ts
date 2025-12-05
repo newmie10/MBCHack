@@ -91,3 +91,4 @@ export function isWatched(address: string): boolean {
     (w) => w.address.toLowerCase() === address.toLowerCase()
   );
 }
+
