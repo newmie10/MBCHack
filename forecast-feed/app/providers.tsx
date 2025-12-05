@@ -23,11 +23,12 @@ export function Providers({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           theme={lightTheme({
-            accentColor: "#171717",
+            accentColor: "#0052FF", // Base blue
             accentColorForeground: "white",
             borderRadius: "medium",
           })}
           modalSize="compact"
+          initialChain={84532} // Base Sepolia
         >
           <WatchlistProvider>
             {children}

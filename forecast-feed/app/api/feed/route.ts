@@ -116,6 +116,18 @@ export async function GET(request: Request) {
       const marketsText = await marketsResponse.text();
       try {
         markets = JSON.parse(marketsText);
+        // Normalize volume fields for all markets
+        markets = markets.map((market: any) => {
+          if (!market.volume) {
+            market.volume = market.volume24h || 
+                           market.volumeUsd || 
+                           market.volumeUSD || 
+                           market.totalVolume ||
+                           market.volume24 || 
+                           "0";
+          }
+          return market;
+        });
       } catch {
         console.error("Failed to parse markets");
       }
@@ -151,7 +163,19 @@ export async function GET(request: Request) {
           },
         });
         if (response.ok) {
-          return await response.json();
+          const marketData = await response.json();
+          // Polymarket API may return volume in different fields
+          // Try to normalize volume field
+          if (marketData && !marketData.volume) {
+            // Check for alternative volume field names
+            marketData.volume = marketData.volume24h || 
+                               marketData.volumeUsd || 
+                               marketData.volumeUSD || 
+                               marketData.totalVolume ||
+                               marketData.volume24 || 
+                               "0";
+          }
+          return marketData;
         }
       } catch (error) {
         console.error(`Failed to fetch market ${conditionId}:`, error);
@@ -168,6 +192,16 @@ export async function GET(request: Request) {
                    tokenToMarket.get(trade.asset_id || "") || 
                    tokenToMarket.get(trade.market || "");
       
+      // Normalize volume field if market exists
+      if (market && !market.volume) {
+        market.volume = (market as any).volume24h || 
+                       (market as any).volumeUsd || 
+                       (market as any).volumeUSD || 
+                       (market as any).totalVolume ||
+                       (market as any).volume24 || 
+                       "0";
+      }
+      
       // If market not found or volume is missing/zero, try to fetch individual market data
       const conditionId = trade.conditionId || trade.asset || trade.asset_id || trade.market;
       if ((!market || !market.volume || market.volume === "0") && conditionId) {
@@ -176,6 +210,9 @@ export async function GET(request: Request) {
           market = fetchedMarket;
         }
       }
+      
+      // Use market volume only - no fallback to trade volume
+      const finalVolume = market?.volume || "0";
       
       // Convert timestamp (Unix seconds) to ISO string
       const timestampStr = trade.timestamp 
@@ -200,7 +237,7 @@ export async function GET(request: Request) {
           description: market?.description || "",
           outcomes: market?.outcomes || ["Yes", "No"],
           outcomePrices: market?.outcomePrices || ["0.5", "0.5"],
-          volume: market?.volume || "0",
+          volume: finalVolume,
           liquidity: market?.liquidity || "0",
           endDate: market?.endDate || "",
           image: market?.image || trade.icon || "",
@@ -306,6 +343,18 @@ export async function POST(request: Request) {
     if (marketsResponse.ok) {
       try {
         markets = await marketsResponse.json();
+        // Normalize volume fields for all markets
+        markets = markets.map((market: any) => {
+          if (!market.volume) {
+            market.volume = market.volume24h || 
+                           market.volumeUsd || 
+                           market.volumeUSD || 
+                           market.totalVolume ||
+                           market.volume24 || 
+                           "0";
+          }
+          return market;
+        });
       } catch {
         // ignore
       }
@@ -338,7 +387,19 @@ export async function POST(request: Request) {
           },
         });
         if (response.ok) {
-          return await response.json();
+          const marketData = await response.json();
+          // Polymarket API may return volume in different fields
+          // Try to normalize volume field
+          if (marketData && !marketData.volume) {
+            // Check for alternative volume field names
+            marketData.volume = marketData.volume24h || 
+                               marketData.volumeUsd || 
+                               marketData.volumeUSD || 
+                               marketData.totalVolume ||
+                               marketData.volume24 || 
+                               "0";
+          }
+          return marketData;
         }
       } catch (error) {
         console.error(`Failed to fetch market ${conditionId}:`, error);
@@ -352,6 +413,16 @@ export async function POST(request: Request) {
                    tokenToMarket.get(trade.asset_id || "") || 
                    tokenToMarket.get(trade.market || "");
       
+      // Normalize volume field if market exists
+      if (market && !market.volume) {
+        market.volume = (market as any).volume24h || 
+                       (market as any).volumeUsd || 
+                       (market as any).volumeUSD || 
+                       (market as any).totalVolume ||
+                       (market as any).volume24 || 
+                       "0";
+      }
+      
       // If market not found or volume is missing/zero, try to fetch individual market data
       const conditionId = trade.conditionId || trade.asset || trade.asset_id || trade.market;
       if ((!market || !market.volume || market.volume === "0") && conditionId) {
@@ -360,6 +431,9 @@ export async function POST(request: Request) {
           market = fetchedMarket;
         }
       }
+      
+      // Use market volume only - no fallback to trade volume
+      const finalVolume = market?.volume || "0";
       
       // Convert timestamp (Unix seconds) to ISO string
       const timestampStr = trade.timestamp 
@@ -384,7 +458,7 @@ export async function POST(request: Request) {
           description: market?.description || "",
           outcomes: market?.outcomes || ["Yes", "No"],
           outcomePrices: market?.outcomePrices || ["0.5", "0.5"],
-          volume: market?.volume || "0",
+          volume: finalVolume,
           liquidity: market?.liquidity || "0",
           endDate: market?.endDate || "",
           image: market?.image || trade.icon || "",

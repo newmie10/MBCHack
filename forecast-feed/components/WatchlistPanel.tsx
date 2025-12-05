@@ -3,29 +3,64 @@
 import { useState } from "react";
 import { useWatchlist } from "@/lib/WatchlistContext";
 import { formatAddress, formatUSD } from "@/lib/polymarket";
+import { useAccount, useChainId } from "wagmi";
+import { BASE_SEPOLIA_CHAIN_ID } from "@/lib/wagmi";
 
 export function WatchlistPanel() {
   const { watchlist, addWallet, removeWallet, resetToDefaults } = useWatchlist();
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const isBaseNetwork = chainId === BASE_SEPOLIA_CHAIN_ID;
   const [showAdd, setShowAdd] = useState(false);
   const [newAddress, setNewAddress] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const handleAdd = () => {
-    if (!newAddress || !newLabel) return;
+    setError(null);
     
-    // Basic validation
-    if (!newAddress.startsWith("0x") || newAddress.length !== 42) {
-      alert("Invalid Ethereum address");
+    if (!newAddress || !newLabel) {
+      setError("Please fill in both label and address");
+      return;
+    }
+    
+    // Validate Ethereum address format
+    const trimmedAddress = newAddress.trim();
+    if (!trimmedAddress.startsWith("0x") || trimmedAddress.length !== 42) {
+      setError("Invalid address format. Must start with 0x and be 42 characters long.");
+      return;
+    }
+
+    // Additional validation: check if it's a valid hex address
+    try {
+      // Check if address is valid hex
+      if (!/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) {
+        setError("Invalid Ethereum address format");
+        return;
+      }
+    } catch (err) {
+      setError("Invalid Ethereum address format");
+      return;
+    }
+
+    // Check if address already exists
+    const exists = watchlist.some(
+      (w) => w.address.toLowerCase() === trimmedAddress.toLowerCase()
+    );
+    
+    if (exists) {
+      setError("This address is already in your watchlist");
       return;
     }
 
     addWallet({
-      address: newAddress,
-      label: newLabel,
+      address: trimmedAddress,
+      label: newLabel.trim(),
     });
 
     setNewAddress("");
     setNewLabel("");
+    setError(null);
     setShowAdd(false);
   };
 
@@ -58,12 +93,23 @@ export function WatchlistPanel() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => removeWallet(wallet.address)}
-                className="text-xs text-neutral-400 hover:text-red-500 transition-colors"
-              >
-                Remove
-              </button>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`https://sepolia.basescan.org/address/${wallet.address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
+                  title="View on BaseScan"
+                >
+                  BaseScan
+                </a>
+                <button
+                  onClick={() => removeWallet(wallet.address)}
+                  className="text-xs text-neutral-400 hover:text-red-500 transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
             {wallet.stats && (
               <div className="flex gap-3 mt-2 text-xs text-neutral-500">
@@ -87,16 +133,32 @@ export function WatchlistPanel() {
             type="text"
             placeholder="Label (e.g. Whale)"
             value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
+            onChange={(e) => {
+              setNewLabel(e.target.value);
+              setError(null);
+            }}
             className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:border-neutral-400"
           />
           <input
             type="text"
             placeholder="0x..."
             value={newAddress}
-            onChange={(e) => setNewAddress(e.target.value)}
+            onChange={(e) => {
+              setNewAddress(e.target.value);
+              setError(null);
+            }}
             className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-md focus:outline-none focus:border-neutral-400 font-mono"
           />
+          {error && (
+            <div className="text-xs text-red-600 bg-red-50 p-2 rounded-md">
+              {error}
+            </div>
+          )}
+          {isConnected && !isBaseNetwork && (
+            <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded-md">
+              ⚠️ Connected to Base Sepolia recommended for best experience
+            </div>
+          )}
           <div className="flex gap-2">
             <button
               onClick={handleAdd}
@@ -105,7 +167,12 @@ export function WatchlistPanel() {
               Add
             </button>
             <button
-              onClick={() => setShowAdd(false)}
+              onClick={() => {
+                setShowAdd(false);
+                setError(null);
+                setNewAddress("");
+                setNewLabel("");
+              }}
               className="px-3 py-2 text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
             >
               Cancel

@@ -3,5 +3,8 @@ export { FeedCard } from "./FeedCard";
 export { ForecasterCard } from "./ForecasterCard";
 export { FollowButton } from "./FollowButton";
 export { Header } from "./Header";
+export { Footer } from "./Footer";
+export { BaseNetworkStatus } from "./BaseNetworkStatus";
+export { BaseNetworkSwitcher } from "./BaseNetworkSwitcher";
 export { ClientWrapper } from "./ClientWrapper";
 export { WatchlistPanel } from "./WatchlistPanel";

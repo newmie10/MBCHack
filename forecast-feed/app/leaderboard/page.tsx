@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { formatAddress, formatUSD } from "@/lib/polymarket";
 import { useWatchlist } from "@/lib/WatchlistContext";
+import { BaseNetworkStatus } from "@/components/BaseNetworkStatus";
 
 type SortBy = "volume" | "winRate" | "pnl" | "trades";
 
@@ -125,12 +126,17 @@ export default function LeaderboardPage() {
   return (
     <div className="max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-neutral-900 mb-1">
-          Leaderboard
-        </h1>
-        <p className="text-sm text-neutral-500">
-          Top traders ranked by performance
-        </p>
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h1 className="text-xl font-semibold text-neutral-900 mb-1">
+              Leaderboard
+            </h1>
+            <p className="text-sm text-neutral-500">
+              Top traders ranked by performance on Base
+            </p>
+          </div>
+          <BaseNetworkStatus />
+        </div>
       </div>
 
       {/* Sort Options */}

@@ -2,17 +2,23 @@ import { http, createConfig } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 
-// Simple config with just injected wallet (MetaMask, etc.)
+// Base Sepolia RPC endpoint - using public Base RPC
+const BASE_SEPOLIA_RPC = "https://sepolia.base.org";
+
+// Enhanced config optimized for Base Sepolia
 export const config = createConfig({
   chains: [baseSepolia],
   connectors: [
-    injected(),
+    injected({ shimDisconnect: true }),
   ],
   transports: {
-    [baseSepolia.id]: http(),
+    [baseSepolia.id]: http(BASE_SEPOLIA_RPC),
   },
   ssr: true,
 });
+
+// Base Sepolia chain ID constant
+export const BASE_SEPOLIA_CHAIN_ID = baseSepolia.id;
 
 // Contract addresses - update after deployment
 export const FORECAST_FOLLOW_ADDRESS = process.env

@@ -24,11 +24,25 @@ const Header = dynamic(
   }
 );
 
+const Footer = dynamic(
+  () => import("@/components/Footer").then((mod) => mod.Footer),
+  { ssr: false }
+);
+
+const BaseNetworkSwitcher = dynamic(
+  () => import("@/components/BaseNetworkSwitcher").then((mod) => mod.BaseNetworkSwitcher),
+  { ssr: false }
+);
+
 export function ClientWrapper({ children }: { children: ReactNode }) {
   return (
     <Providers>
       <Header />
-      <main className="max-w-5xl mx-auto px-6 py-8">{children}</main>
+      <main className="max-w-5xl mx-auto px-6 py-8">
+        <BaseNetworkSwitcher />
+        {children}
+      </main>
+      <Footer />
     </Providers>
   );
 }

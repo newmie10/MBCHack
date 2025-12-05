@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useChainId } from "wagmi";
 import {
   FeedItem,
   formatAddress,
@@ -10,7 +10,7 @@ import {
   formatRelativeTime,
 } from "@/lib/polymarket";
 import { useWatchlist } from "@/lib/WatchlistContext";
-import { COPY_TRADE_ADDRESS, COPY_TRADE_ABI } from "@/lib/wagmi";
+import { COPY_TRADE_ADDRESS, COPY_TRADE_ABI, BASE_SEPOLIA_CHAIN_ID } from "@/lib/wagmi";
 import { useState, useEffect } from "react";
 
 interface FeedCardProps {
@@ -19,8 +19,10 @@ interface FeedCardProps {
 
 export function FeedCard({ item }: FeedCardProps) {
   const { isConnected, address } = useAccount();
+  const chainId = useChainId();
   const { watchlist } = useWatchlist();
   const [copyStatus, setCopyStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
+  const isBaseNetwork = chainId === BASE_SEPOLIA_CHAIN_ID;
 
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
@@ -54,6 +56,12 @@ export function FeedCard({ item }: FeedCardProps) {
       return;
     }
 
+    // Check if on Base Sepolia network when contract is deployed
+    if (COPY_TRADE_ADDRESS && !isBaseNetwork) {
+      alert("Please switch to Base Sepolia network to copy trades on-chain");
+      return;
+    }
+
     // If no contract deployed, just open the market with transaction ID
     if (!COPY_TRADE_ADDRESS) {
       // Use tradeId if available, otherwise fall back to timestamp in milliseconds
@@ -79,14 +87,41 @@ export function FeedCard({ item }: FeedCardProps) {
     }
 
     try {
+      // Validate required fields
+      if (!item.trader || !item.market.conditionId || !item.outcome || !item.side) {
+        setCopyStatus("error");
+        setTimeout(() => setCopyStatus("idle"), 3000);
+        return;
+      }
+
       // Convert price to uint (scaled by 1e4)
       const priceScaled = Math.floor(parseFloat(item.price) * 10000);
+      if (priceScaled <= 0 || isNaN(priceScaled)) {
+        console.error("Invalid price:", item.price);
+        setCopyStatus("error");
+        setTimeout(() => setCopyStatus("idle"), 3000);
+        return;
+      }
+
       // Convert amount to uint (scaled by 1e6)
       const amountScaled = Math.floor(parseFloat(item.size) * parseFloat(item.price) * 1000000);
-      // Convert tx hash to bytes32
-      const txHash = item.transactionHash 
-        ? (item.transactionHash.padEnd(66, '0') as `0x${string}`)
-        : ('0x' + '0'.repeat(64)) as `0x${string}`;
+      if (amountScaled <= 0 || isNaN(amountScaled)) {
+        console.error("Invalid amount:", item.size, item.price);
+        setCopyStatus("error");
+        setTimeout(() => setCopyStatus("idle"), 3000);
+        return;
+      }
+
+      // Convert tx hash to bytes32 - ensure proper format
+      let txHash: `0x${string}`;
+      if (item.transactionHash) {
+        // Remove 0x if present, pad to 64 chars, then add 0x
+        const hashWithoutPrefix = item.transactionHash.replace(/^0x/, '');
+        const paddedHash = hashWithoutPrefix.padEnd(64, '0').slice(0, 64);
+        txHash = `0x${paddedHash}` as `0x${string}`;
+      } else {
+        txHash = ('0x' + '0'.repeat(64)) as `0x${string}`;
+      }
 
       writeContract({
         address: COPY_TRADE_ADDRESS,
@@ -99,12 +134,13 @@ export function FeedCard({ item }: FeedCardProps) {
           item.side,
           BigInt(amountScaled),
           BigInt(priceScaled),
-          txHash as `0x${string}`,
+          txHash,
         ],
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Copy trade error:", err);
       setCopyStatus("error");
+      setTimeout(() => setCopyStatus("idle"), 3000);
     }
   };
 
@@ -182,7 +218,6 @@ export function FeedCard({ item }: FeedCardProps) {
 
       <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
         <div className="flex items-center gap-4 text-xs text-neutral-400">
-          <span>Vol {formatUSD(parseFloat(item.market.volume || "0"))}</span>
           {item.transactionHash && (
             <a
               href={`https://polygonscan.com/tx/${item.transactionHash}`}
@@ -197,23 +232,39 @@ export function FeedCard({ item }: FeedCardProps) {
         
         <button
           onClick={handleCopyTrade}
-          disabled={copyStatus === "pending"}
+          disabled={copyStatus === "pending" || (COPY_TRADE_ADDRESS && !isBaseNetwork)}
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${getButtonStyle()}`}
+          title={COPY_TRADE_ADDRESS && !isBaseNetwork ? "Switch to Base Sepolia to copy trades" : undefined}
         >
           {getButtonText()}
         </button>
       </div>
 
       {hash && (
-        <div className="mt-2 pt-2 border-t border-neutral-100">
-          <a
-            href={`https://sepolia.basescan.org/tx/${hash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
-          >
-            View copy trade on Base Sepolia →
-          </a>
+        <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-neutral-500">
+              {isConfirming ? "Confirming transaction..." : isSuccess ? "Transaction confirmed!" : "Transaction pending..."}
+            </span>
+            <a
+              href={`https://sepolia.basescan.org/tx/${hash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:text-blue-700 transition-colors font-medium"
+            >
+              View on BaseScan →
+            </a>
+          </div>
+          {isSuccess && (
+            <p className="text-xs text-emerald-600">
+              ✓ Copy trade recorded on Base Sepolia
+            </p>
+          )}
+          {error && (
+            <p className="text-xs text-red-600">
+              ✗ Transaction failed. Please try again.
+            </p>
+          )}
         </div>
       )}
     </div>

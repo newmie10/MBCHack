@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
 import { FollowButton } from "@/components/FollowButton";
 import { FeedCard } from "@/components/FeedCard";
+import { BaseNetworkStatus } from "@/components/BaseNetworkStatus";
 import {
   formatAddress,
   formatUSD,
@@ -32,24 +33,26 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Get follower count
-  const { data: followers } = useReadContract({
+  const { data: followers, error: followersError } = useReadContract({
     address: FORECAST_FOLLOW_ADDRESS,
     abi: FORECAST_FOLLOW_ABI,
     functionName: "getFollowers",
     args: [address as `0x${string}`],
     query: {
-      enabled: !!FORECAST_FOLLOW_ADDRESS,
+      enabled: !!FORECAST_FOLLOW_ADDRESS && !!address,
+      retry: 2,
     },
   });
 
   // Get following count
-  const { data: following } = useReadContract({
+  const { data: following, error: followingError } = useReadContract({
     address: FORECAST_FOLLOW_ADDRESS,
     abi: FORECAST_FOLLOW_ABI,
     functionName: "getFollowing",
     args: [address as `0x${string}`],
     query: {
-      enabled: !!FORECAST_FOLLOW_ADDRESS,
+      enabled: !!FORECAST_FOLLOW_ADDRESS && !!address,
+      retry: 2,
     },
   });
 
@@ -130,9 +133,23 @@ export default function ProfilePage() {
               {address.slice(2, 4).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-neutral-900 mb-1">
-                {formatAddress(address)}
-              </h1>
+              <div className="flex items-center gap-2 mb-1">
+                <h1 className="text-xl font-semibold text-neutral-900">
+                  {formatAddress(address)}
+                </h1>
+                <a
+                  href={`https://sepolia.basescan.org/address/${address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 text-xs font-medium rounded hover:bg-blue-100 transition-colors"
+                  title="View on BaseScan"
+                >
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 0L11.196 3V9L6 12L0.804 9V3L6 0Z" fill="currentColor"/>
+                  </svg>
+                  Base
+                </a>
+              </div>
               <div className="flex items-center gap-4 text-sm text-neutral-500">
                 <span>
                   <strong className="text-neutral-900">
@@ -149,7 +166,10 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          {!isOwnProfile && <FollowButton address={address} />}
+          <div className="flex items-center gap-3">
+            <BaseNetworkStatus />
+            {!isOwnProfile && <FollowButton address={address} />}
+          </div>
         </div>
 
         {/* Badges */}

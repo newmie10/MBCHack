@@ -105,12 +105,18 @@ npm install
 Create a `.env.local` file in the root directory:
 
 ```env
-# WalletConnect Project ID (get one at https://cloud.walletconnect.com/)
+# WalletConnect Project ID (optional - get one at https://cloud.walletconnect.com/)
+# Not required for basic functionality with MetaMask
 NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=your_project_id_here
 
 # Deployed contract address on Base Sepolia (optional - app works without it)
 NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
+
+# Copy Trade contract address on Base Sepolia (optional)
+NEXT_PUBLIC_COPY_TRADE_ADDRESS=0x...
 ```
+
+**Note:** The app is configured to work on **Base Sepolia** network. Make sure your wallet is connected to Base Sepolia for on-chain interactions.
 
 ### Running Locally
 
@@ -248,13 +254,21 @@ Returns stats and recent trades for a specific forecaster.
 
 We chose **Base** as our L2 for several reasons:
 
-1. **Low Fees**: Storing social relationships on-chain is affordable
-2. **Fast Finality**: Follow/unfollow actions confirm quickly
-3. **EVM Compatible**: Easy integration with existing Ethereum tooling
+1. **Low Fees**: Storing social relationships on-chain is affordable (typically < $0.01 per transaction)
+2. **Fast Finality**: Follow/unfollow actions confirm quickly (~2 seconds)
+3. **EVM Compatible**: Easy integration with existing Ethereum tooling (wagmi, viem, etc.)
 4. **Coinbase Ecosystem**: Seamless wallet integration for mainstream users
 5. **Growing Ecosystem**: Active developer community and resources
+6. **Base Sepolia Testnet**: Free testnet ETH available for development and testing
 
-Base's infrastructure allows us to store social data on-chain without prohibitive gas costs, making the follow system genuinely decentralized.
+Base's infrastructure allows us to store social data on-chain without prohibitive gas costs, making the follow system genuinely decentralized. All on-chain operations (follows, copy trades) are executed on Base Sepolia with minimal transaction fees.
+
+### Base Network Features
+
+- **Automatic Network Detection**: The app detects if you're on Base Sepolia
+- **Network Switching**: One-click network switching to Base Sepolia
+- **BaseScan Integration**: All transactions link to BaseScan explorer
+- **Base Ecosystem Links**: Direct links to Base documentation and resources
 
 ## Hackathon Submission
 
