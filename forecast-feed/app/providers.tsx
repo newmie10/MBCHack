@@ -1,32 +1,37 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
-import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
+import { type ReactNode } from "react";
+import { RainbowKitProvider, lightTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { config } from "@/lib/wagmi";
+import { WatchlistProvider } from "@/lib/WatchlistContext";
 import "@rainbow-me/rainbowkit/styles.css";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
-          theme={darkTheme({
-            accentColor: "#3b82f6",
+          theme={lightTheme({
+            accentColor: "#171717",
             accentColorForeground: "white",
             borderRadius: "medium",
           })}
+          modalSize="compact"
         >
-          {mounted ? children : <div style={{ visibility: "hidden" }}>{children}</div>}
+          <WatchlistProvider>
+            {children}
+          </WatchlistProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

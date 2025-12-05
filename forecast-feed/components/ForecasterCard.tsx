@@ -18,29 +18,29 @@ interface ForecasterCardProps {
 }
 
 export function ForecasterCard({ forecaster, rank }: ForecasterCardProps) {
-  const pnlColor = forecaster.pnl >= 0 ? "text-green-400" : "text-red-400";
+  const pnlColor = forecaster.pnl >= 0 ? "text-emerald-600" : "text-red-600";
   const pnlPrefix = forecaster.pnl >= 0 ? "+" : "";
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-all">
+    <div className="bg-white border border-neutral-200 rounded-lg p-4 hover:border-neutral-300 transition-colors">
       <div className="flex items-center justify-between">
         <Link
           href={`/profile/${forecaster.address}`}
-          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          className="flex items-center gap-3 hover:opacity-70 transition-opacity"
         >
           {rank && (
-            <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm font-bold text-zinc-400">
-              #{rank}
-            </div>
+            <span className="text-xs text-neutral-400 w-4">
+              {rank}
+            </span>
           )}
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+          <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600 text-xs font-medium">
             {forecaster.address.slice(2, 4).toUpperCase()}
           </div>
           <div>
-            <span className="font-medium text-white block">
+            <span className="text-sm font-medium text-neutral-900 block">
               {formatAddress(forecaster.address)}
             </span>
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-neutral-400">
               {forecaster.totalTrades} trades
             </span>
           </div>
@@ -48,45 +48,25 @@ export function ForecasterCard({ forecaster, rank }: ForecasterCardProps) {
         <FollowButton address={forecaster.address} />
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-zinc-800">
+      <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-neutral-100">
         <div>
-          <p className="text-xs text-zinc-500 mb-1">Volume</p>
-          <p className="text-sm font-medium text-white">
+          <p className="text-xs text-neutral-400 mb-0.5">Volume</p>
+          <p className="text-sm font-medium text-neutral-900">
             {formatUSD(forecaster.totalVolume)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-zinc-500 mb-1">Win Rate</p>
-          <p className="text-sm font-medium text-white">
-            {(forecaster.winRate * 100).toFixed(1)}%
+          <p className="text-xs text-neutral-400 mb-0.5">Win Rate</p>
+          <p className="text-sm font-medium text-neutral-900">
+            {(forecaster.winRate * 100).toFixed(0)}%
           </p>
         </div>
         <div>
-          <p className="text-xs text-zinc-500 mb-1">P&L</p>
+          <p className="text-xs text-neutral-400 mb-0.5">P&L</p>
           <p className={`text-sm font-medium ${pnlColor}`}>
-            {pnlPrefix}
-            {formatUSD(Math.abs(forecaster.pnl))}
+            {pnlPrefix}{formatUSD(Math.abs(forecaster.pnl))}
           </p>
         </div>
-      </div>
-
-      {/* Badges */}
-      <div className="flex gap-2 mt-3">
-        {forecaster.winRate >= 0.6 && (
-          <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs">
-            🏆 High Win Rate
-          </span>
-        )}
-        {forecaster.totalVolume >= 100000 && (
-          <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full text-xs">
-            🐋 Whale
-          </span>
-        )}
-        {forecaster.totalTrades >= 100 && (
-          <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded-full text-xs">
-            ⚡ Active Trader
-          </span>
-        )}
       </div>
     </div>
   );

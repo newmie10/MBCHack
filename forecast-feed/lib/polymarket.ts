@@ -2,7 +2,7 @@
 // Documentation: https://docs.polymarket.com/
 
 const GAMMA_API = "https://gamma-api.polymarket.com";
-const CLOB_API = "https://clob.polymarket.com";
+const DATA_API = "https://data-api.polymarket.com";
 
 export interface Market {
   id: string;
@@ -22,22 +22,36 @@ export interface Market {
 }
 
 export interface Trade {
-  id: string;
-  taker_order_id: string;
-  market: string;
-  asset_id: string;
+  // Data API fields
+  proxyWallet?: string;
   side: "BUY" | "SELL";
-  size: string;
-  fee_rate_bps: string;
-  price: string;
-  status: string;
-  match_time: string;
-  last_update: string;
-  outcome: string;
-  maker_address: string;
-  trader_address: string;
-  transaction_hash: string;
-  bucket_index: number;
+  asset?: string;
+  conditionId?: string;
+  size: string | number;
+  price: string | number;
+  timestamp?: number;
+  title?: string;
+  slug?: string;
+  icon?: string;
+  eventSlug?: string;
+  outcome?: string;
+  outcomeIndex?: number;
+  name?: string;
+  pseudonym?: string;
+  transactionHash?: string;
+  // Legacy CLOB fields (for compatibility)
+  id?: string;
+  taker_order_id?: string;
+  market?: string;
+  asset_id?: string;
+  fee_rate_bps?: string;
+  status?: string;
+  match_time?: string;
+  last_update?: string;
+  maker_address?: string;
+  trader_address?: string;
+  transaction_hash?: string;
+  bucket_index?: number;
 }
 
 export interface ForecasterStats {
@@ -102,10 +116,10 @@ export async function fetchMarket(conditionId: string): Promise<Market | null> {
   }
 }
 
-// Fetch recent trades from CLOB API
+// Fetch recent trades from Data API (public, no auth required)
 export async function fetchRecentTrades(limit = 50): Promise<Trade[]> {
   try {
-    const response = await fetch(`${CLOB_API}/trades?limit=${limit}`, {
+    const response = await fetch(`${DATA_API}/trades?limit=${limit}`, {
       next: { revalidate: 30 },
     });
     if (!response.ok) throw new Error("Failed to fetch trades");
@@ -117,14 +131,15 @@ export async function fetchRecentTrades(limit = 50): Promise<Trade[]> {
   }
 }
 
-// Fetch trades for a specific trader
+// Fetch trades for a specific trader using Data API (public, no auth required)
 export async function fetchTraderTrades(
   traderAddress: string,
   limit = 50
 ): Promise<Trade[]> {
   try {
+    // Data API uses 'user' parameter for filtering by address
     const response = await fetch(
-      `${CLOB_API}/trades?maker=${traderAddress}&limit=${limit}`,
+      `${DATA_API}/trades?user=${traderAddress}&limit=${limit}`,
       { next: { revalidate: 30 } }
     );
     if (!response.ok) throw new Error("Failed to fetch trader trades");
@@ -143,20 +158,43 @@ export async function buildFeedItems(trades: Trade[]): Promise<FeedItem[]> {
   const feedItems: FeedItem[] = [];
   
   for (const trade of trades) {
-    const market = marketMap.get(trade.market);
-    if (!market) continue;
+    // Try to get market from conditionId or market field
+    const market = marketMap.get(trade.conditionId || "") || marketMap.get(trade.market || "");
+    
+    // Build market object from trade data if not found in markets
+    const marketData: Market = market || {
+      id: trade.conditionId || trade.market || "unknown",
+      question: trade.title || `Market ${(trade.conditionId || trade.market || "").slice(0, 10)}...`,
+      description: "",
+      outcomes: ["Yes", "No"],
+      outcomePrices: ["0.5", "0.5"],
+      volume: "0",
+      liquidity: "0",
+      endDate: "",
+      image: trade.icon || "",
+      icon: trade.icon || "",
+      active: true,
+      closed: false,
+      marketSlug: trade.slug || "",
+      conditionId: trade.conditionId || trade.market || "",
+    };
+
+    // Convert timestamp to ISO string
+    const timestampStr = trade.timestamp 
+      ? new Date(trade.timestamp * 1000).toISOString()
+      : trade.match_time || trade.last_update || new Date().toISOString();
 
     feedItems.push({
-      id: trade.id,
+      id: trade.transactionHash || trade.transaction_hash || trade.id || `trade-${Date.now()}`,
       type: "trade" as const,
-      trader: trade.trader_address || trade.maker_address,
-      market,
+      trader: trade.proxyWallet || trade.trader_address || trade.maker_address || "Unknown",
+      market: marketData,
       outcome: trade.outcome || (trade.asset_id === "0" ? "Yes" : "No"),
       side: trade.side,
-      size: trade.size,
-      price: trade.price,
-      timestamp: trade.match_time || trade.last_update,
-      transactionHash: trade.transaction_hash,
+      size: String(trade.size),
+      price: String(trade.price),
+      timestamp: timestampStr,
+      transactionHash: trade.transactionHash || trade.transaction_hash,
     });
   }
   

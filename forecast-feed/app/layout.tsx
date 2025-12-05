@@ -14,10 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Forecast Feed | Social Prediction Tracker",
-  description:
-    "Follow top forecasters and see their prediction market activity in real-time. Built on Base with Polymarket data.",
-  keywords: ["prediction markets", "polymarket", "forecasting", "crypto", "base"],
+  title: "Forecast Feed",
+  description: "Track prediction market activity in real-time",
 };
 
 export default function RootLayout({
@@ -26,9 +24,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-neutral-50 text-neutral-900 min-h-screen`}
       >
         <ClientWrapper>{children}</ClientWrapper>
       </body>

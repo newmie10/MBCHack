@@ -1,16 +1,25 @@
-import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { http, createConfig } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
+import { injected } from "wagmi/connectors";
 
-export const config = getDefaultConfig({
-  appName: "Forecast Feed",
-  projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || "demo",
+// Simple config with just injected wallet (MetaMask, etc.)
+export const config = createConfig({
   chains: [baseSepolia],
+  connectors: [
+    injected(),
+  ],
+  transports: {
+    [baseSepolia.id]: http(),
+  },
   ssr: true,
 });
 
-// Contract address - will be updated after deployment
+// Contract addresses - update after deployment
 export const FORECAST_FOLLOW_ADDRESS = process.env
   .NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}` | undefined;
+
+export const COPY_TRADE_ADDRESS = process.env
+  .NEXT_PUBLIC_COPY_TRADE_ADDRESS as `0x${string}` | undefined;
 
 export const FORECAST_FOLLOW_ABI = [
   {
@@ -51,22 +60,59 @@ export const FORECAST_FOLLOW_ABI = [
     stateMutability: "view",
     type: "function",
   },
+] as const;
+
+export const COPY_TRADE_ABI = [
   {
-    anonymous: false,
     inputs: [
-      { indexed: true, name: "follower", type: "address" },
-      { indexed: true, name: "forecaster", type: "address" },
+      { name: "originalTrader", type: "address" },
+      { name: "marketId", type: "string" },
+      { name: "outcome", type: "string" },
+      { name: "side", type: "string" },
+      { name: "amount", type: "uint256" },
+      { name: "price", type: "uint256" },
+      { name: "originalTxHash", type: "bytes32" },
     ],
-    name: "Followed",
-    type: "event",
+    name: "copyTrade",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "nonpayable",
+    type: "function",
   },
   {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: "follower", type: "address" },
-      { indexed: true, name: "forecaster", type: "address" },
+    inputs: [{ name: "user", type: "address" }],
+    name: "getUserTrades",
+    outputs: [{ name: "", type: "uint256[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "tradeId", type: "uint256" }],
+    name: "getTrade",
+    outputs: [
+      {
+        components: [
+          { name: "copier", type: "address" },
+          { name: "originalTrader", type: "address" },
+          { name: "marketId", type: "string" },
+          { name: "outcome", type: "string" },
+          { name: "side", type: "string" },
+          { name: "amount", type: "uint256" },
+          { name: "price", type: "uint256" },
+          { name: "timestamp", type: "uint256" },
+          { name: "originalTxHash", type: "bytes32" },
+        ],
+        name: "",
+        type: "tuple",
+      },
     ],
-    name: "Unfollowed",
-    type: "event",
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "user", type: "address" }],
+    name: "getUserTradeCount",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
   },
 ] as const;
