@@ -134,7 +134,7 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Sort Options */}
-      <div className="flex gap-2 mb-6">
+      <div className="inline-flex gap-1 p-1 bg-neutral-100 rounded-full mb-6">
         {[
           { key: "pnl", label: "P&L" },
           { key: "volume", label: "Volume" },
@@ -144,10 +144,10 @@ export default function LeaderboardPage() {
           <button
             key={option.key}
             onClick={() => setSortBy(option.key as SortBy)}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
               sortBy === option.key
-                ? "bg-neutral-900 text-white"
-                : "bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-300"
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-500 hover:text-neutral-700"
             }`}
           >
             {option.label}

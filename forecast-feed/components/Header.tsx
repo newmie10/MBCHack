@@ -1,51 +1,105 @@
 "use client";
 
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
-// Dynamically import ConnectButton to avoid SSR issues
-const ConnectButton = dynamic(
-  () => import("@rainbow-me/rainbowkit").then((mod) => mod.ConnectButton),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="w-24 h-8 bg-neutral-100 rounded-md animate-pulse" />
-    ),
-  }
-);
+function CustomConnectButton() {
+  return (
+    <ConnectButton.Custom>
+      {({
+        account,
+        chain,
+        openAccountModal,
+        openChainModal,
+        openConnectModal,
+        mounted,
+      }) => {
+        const ready = mounted;
+        const connected = ready && account && chain;
+
+        return (
+          <div
+            {...(!ready && {
+              'aria-hidden': true,
+              style: {
+                opacity: 0,
+                pointerEvents: 'none',
+                userSelect: 'none',
+              },
+            })}
+          >
+            {(() => {
+              if (!connected) {
+                return (
+                  <button
+                    onClick={openConnectModal}
+                    className="px-5 py-2 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 transition-colors"
+                  >
+                    Connect
+                  </button>
+                );
+              }
+
+              if (chain.unsupported) {
+                return (
+                  <button
+                    onClick={openChainModal}
+                    className="px-5 py-2 bg-red-500 text-white text-sm font-medium rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    Wrong network
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  onClick={openAccountModal}
+                  className="flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-900 text-sm font-medium rounded-full hover:bg-neutral-200 transition-colors"
+                >
+                  <div className="w-6 h-6 rounded-full bg-neutral-900 flex items-center justify-center text-white text-xs">
+                    {account.displayName.slice(0, 2)}
+                  </div>
+                  {account.displayName}
+                </button>
+              );
+            })()}
+          </div>
+        );
+      }}
+    </ConnectButton.Custom>
+  );
+}
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-neutral-200">
-      <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <span className="text-neutral-900 text-lg">◆</span>
-          <span className="text-lg font-bold tracking-tight text-neutral-900">
-            Forecast<span className="text-neutral-400 font-medium">Feed</span>
-          </span>
-        </Link>
-        
-        <nav className="hidden md:flex items-center gap-8">
-          <Link
-            href="/"
-            className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
-          >
-            Feed
+    <div className="sticky top-0 z-50 px-4 pt-4 pb-2">
+      <header className="max-w-3xl mx-auto bg-white/80 backdrop-blur-md border border-neutral-200 rounded-full px-6 py-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 group">
+            <span className="text-neutral-900 text-lg">◆</span>
+            <span className="text-base font-bold tracking-tight text-neutral-900">
+              Forecast<span className="text-neutral-400 font-medium">Feed</span>
+            </span>
           </Link>
-          <Link
-            href="/leaderboard"
-            className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
-          >
-            Leaderboard
-          </Link>
-        </nav>
+          
+          <nav className="hidden md:flex items-center gap-6">
+            <Link
+              href="/"
+              className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+            >
+              Feed
+            </Link>
+            <Link
+              href="/leaderboard"
+              className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+            >
+              Leaderboard
+            </Link>
+          </nav>
 
-        <ConnectButton
-          accountStatus="avatar"
-          chainStatus="none"
-          showBalance={false}
-        />
-      </div>
-    </header>
+          <CustomConnectButton />
+        </div>
+      </header>
+    </div>
   );
 }
