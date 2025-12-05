@@ -24,5 +24,34 @@ export type ScoredMarket = Market & {
   sentimentTags?: string[];
   sentimentLoading?: boolean;
   sentimentError?: string;
+  brief?: string;
+  briefRisk?: string;
+  briefAction?: string;
+  briefConfidence?: number;
+  briefLoading?: boolean;
+  briefError?: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  marketId: string;
+  nickname: string;
+  body: string;
+  createdAt: string;
+};
+
+export type Trade = {
+  id: string;
+  marketId: string;
+  marketQuestion?: string;
+  marketSlug?: string;
+  outcome: string;
+  price: number;
+  size: number;
+  notional: number;
+  takerSide: "buy" | "sell";
+  trader?: string;
+  timestamp: string;
+  odds?: number;
 };
 

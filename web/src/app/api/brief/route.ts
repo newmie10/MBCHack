@@ -16,40 +16,17 @@ const getModel = (modelId: string) =>
     generationConfig: { responseMimeType: "application/json" },
   });
 
-type SentimentResponse = {
-  sentimentScore: number;
-  sentimentRationale: string;
-  sentimentTags: string[];
-  sources: { title: string; url?: string; domain?: string }[];
+type BriefResponse = {
+  brief: string;
+  risk: string;
+  action: string;
+  confidence: number;
 };
 
 const getMessage = (value: unknown) => {
   if (value instanceof Error) return value.message;
   if (typeof value === "string") return value;
-  return "Failed to analyze sentiment";
-};
-
-const fetchArticles = async (query: string) => {
-  try {
-    const search = encodeURIComponent(query.slice(0, 120));
-    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${search}&maxrecords=5&format=json&timespan=7d&sort=datedesc`;
-    const res = await fetch(url, {
-      headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(7000),
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as { articles?: unknown };
-    const articles = Array.isArray(data?.articles) ? data.articles : [];
-    return articles
-      .map((a: Record<string, unknown>) => ({
-        title: typeof a.title === "string" ? a.title : "",
-        url: typeof a.url === "string" ? a.url : undefined,
-        domain: typeof a.domain === "string" ? a.domain : undefined,
-      }))
-      .filter((a: { title: string }) => a.title);
-  } catch {
-    return [];
-  }
+  return "Failed to generate brief";
 };
 
 export async function POST(req: Request) {
@@ -71,10 +48,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const sources = await fetchArticles(market.question);
-    const headlines = sources.map((s) => s.title).slice(0, 5);
-
-    let parsed: Partial<SentimentResponse> | null = null;
+    let parsed: Partial<BriefResponse> | null = null;
     let lastError: unknown = null;
 
     for (const modelId of GEMINI_MODELS) {
@@ -87,15 +61,21 @@ export async function POST(req: Request) {
               parts: [
                 {
                   text: [
-                    "You are evaluating market sentiment for a Polymarket question using recent headlines.",
-                    "Return JSON {sentimentScore: -100..100, sentimentRationale: short string, sentimentTags: [strings]}",
-                    "Interpretation: -100 very negative for the thesis, 0 neutral/mixed, +100 very positive for the thesis.",
-                    "Be concise, and base your judgment only on provided headlines.",
+                    "You create a quick trading brief for a Polymarket market.",
+                    "Return JSON {brief: string, risk: string, action: string, confidence: 0-100}.",
+                    "Keep it concise and actionable. Consider liquidity, bid/ask, timeline, info asymmetry.",
                     "Input:",
                     JSON.stringify({
                       question: market.question,
+                      description: market.description,
+                      outcomes: market.outcomes,
+                      prices: market.prices,
+                      bestBid: market.bestBid,
+                      bestAsk: market.bestAsk,
+                      volume24hr: market.volume24hr,
+                      volumeNum: market.volumeNum,
+                      liquidityNum: market.liquidityNum,
                       endDate: market.endDate,
-                      headlines,
                     }),
                   ].join("\n"),
                 },
@@ -105,8 +85,7 @@ export async function POST(req: Request) {
         });
         const text = result.response?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!text) throw new Error(`No content returned from Gemini model ${modelId}`);
-
-        parsed = JSON.parse(text) as Partial<SentimentResponse>;
+        parsed = JSON.parse(text) as Partial<BriefResponse>;
         break;
       } catch (err) {
         lastError = err;
@@ -117,21 +96,18 @@ export async function POST(req: Request) {
     }
 
     if (!parsed) throw lastError || new Error("Model did not return a result");
-    if (typeof parsed.sentimentScore !== "number") {
-      throw new Error("Malformed sentiment payload");
+    if (typeof parsed.confidence !== "number") {
+      throw new Error("Malformed brief payload");
     }
 
     return NextResponse.json({
-      sentimentScore: parsed.sentimentScore,
-      sentimentRationale:
-        parsed.sentimentRationale ?? "No rationale provided",
-      sentimentTags: Array.isArray(parsed.sentimentTags)
-        ? parsed.sentimentTags.map((t) => String(t))
-        : [],
-      sources,
+      brief: parsed.brief ?? "No brief",
+      risk: parsed.risk ?? "No risk notes",
+      action: parsed.action ?? "No action",
+      confidence: parsed.confidence,
     });
   } catch (error) {
-    console.error("Sentiment failed", error);
+    console.error("Brief failed", error);
     return NextResponse.json(
       { error: getMessage(error) },
       { status: 500 },
