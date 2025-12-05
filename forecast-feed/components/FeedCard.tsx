@@ -18,7 +18,7 @@ interface FeedCardProps {
 }
 
 export function FeedCard({ item }: FeedCardProps) {
-  const { isConnected, address } = useAccount();
+  const { isConnected } = useAccount();
   const chainId = useChainId();
   const { watchlist } = useWatchlist();
   const [copyStatus, setCopyStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
@@ -76,7 +76,6 @@ export function FeedCard({ item }: FeedCardProps) {
         // Use market URL format: /market/{market-slug}
         url = `https://polymarket.com/market/${item.market.marketSlug}${tid ? `?tid=${tid}` : ""}`;
       } else {
-        // Fallback: try to use conditionId as slug (may not work, but better than nothing)
         url = `https://polymarket.com/market/${item.market.conditionId}${tid ? `?tid=${tid}` : ""}`;
       }
       

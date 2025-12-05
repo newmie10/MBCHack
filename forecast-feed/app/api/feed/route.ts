@@ -58,8 +58,6 @@ export async function GET(request: Request) {
     const minAmount = searchParams.get("minAmount") || "10"; // Default $10 min
     const limit = searchParams.get("limit") || "30";
     
-    console.log(`Fetching recent trades from Polymarket (min: $${minAmount})...`);
-    
     // Build URL with filters - Data API supports filterType and filterAmount
     const apiUrl = new URL(`${DATA_API}/trades`);
     apiUrl.searchParams.set("limit", limit);
@@ -101,8 +99,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unexpected response format" }, { status: 502 });
     }
 
-    console.log(`Fetched ${trades.length} trades`);
-
     // Fetch markets
     const marketsResponse = await fetch(`${GAMMA_API}/markets?limit=100&active=true`, {
       headers: { 
@@ -132,8 +128,6 @@ export async function GET(request: Request) {
         console.error("Failed to parse markets");
       }
     }
-
-    console.log(`Fetched ${markets.length} markets`);
 
     // Create token to market mapping
     const tokenToMarket = new Map<string, PolymarketMarket>();

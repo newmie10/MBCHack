@@ -32,13 +32,7 @@ export function WatchlistPanel() {
     }
 
     // Additional validation: check if it's a valid hex address
-    try {
-      // Check if address is valid hex
-      if (!/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) {
-        setError("Invalid Ethereum address format");
-        return;
-      }
-    } catch (err) {
+    if (!/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) {
       setError("Invalid Ethereum address format");
       return;
     }

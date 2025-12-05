@@ -152,57 +152,6 @@ export async function fetchTraderTrades(
   }
 }
 
-// Build feed items combining market and trade data
-export async function buildFeedItems(trades: Trade[]): Promise<FeedItem[]> {
-  const markets = await fetchMarkets(100);
-  const marketMap = new Map(markets.map((m) => [m.conditionId, m]));
-
-  const feedItems: FeedItem[] = [];
-  
-  for (const trade of trades) {
-    // Try to get market from conditionId or market field
-    const market = marketMap.get(trade.conditionId || "") || marketMap.get(trade.market || "");
-    
-    // Build market object from trade data if not found in markets
-    const marketData: Market = market || {
-      id: trade.conditionId || trade.market || "unknown",
-      question: trade.title || `Market ${(trade.conditionId || trade.market || "").slice(0, 10)}...`,
-      description: "",
-      outcomes: ["Yes", "No"],
-      outcomePrices: ["0.5", "0.5"],
-      volume: "0",
-      liquidity: "0",
-      endDate: "",
-      image: trade.icon || "",
-      icon: trade.icon || "",
-      active: true,
-      closed: false,
-      marketSlug: trade.slug || "",
-      conditionId: trade.conditionId || trade.market || "",
-    };
-
-    // Convert timestamp to ISO string
-    const timestampStr = trade.timestamp 
-      ? new Date(trade.timestamp * 1000).toISOString()
-      : trade.match_time || trade.last_update || new Date().toISOString();
-
-    feedItems.push({
-      id: trade.transactionHash || trade.transaction_hash || trade.id || `trade-${Date.now()}`,
-      type: "trade" as const,
-      trader: trade.proxyWallet || trade.trader_address || trade.maker_address || "Unknown",
-      market: marketData,
-      outcome: trade.outcome || (trade.asset_id === "0" ? "Yes" : "No"),
-      side: trade.side,
-      size: String(trade.size),
-      price: String(trade.price),
-      timestamp: timestampStr,
-      transactionHash: trade.transactionHash || trade.transaction_hash,
-    });
-  }
-  
-  return feedItems;
-}
-
 // Mock data for demo/development when API is unavailable
 export function getMockFeedItems(): FeedItem[] {
   const mockMarkets: Market[] = [
