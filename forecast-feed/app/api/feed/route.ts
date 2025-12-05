@@ -149,6 +149,9 @@ export async function GET(request: Request) {
         ? new Date(trade.timestamp * 1000).toISOString()
         : trade.match_time || trade.created_at || new Date().toISOString();
       
+      // Get trade ID for Polymarket URL tid parameter (use id if available, otherwise timestamp in ms)
+      const tradeId = trade.id || (trade.timestamp ? String(trade.timestamp * 1000) : undefined);
+      
       return {
         id: trade.transactionHash || trade.transaction_hash || trade.id || `trade-${index}-${Date.now()}`,
         type: "trade",
@@ -176,6 +179,7 @@ export async function GET(request: Request) {
         price: String(trade.price ?? "0.5"),
         timestamp: timestampStr,
         transactionHash: trade.transactionHash || trade.transaction_hash,
+        tradeId: tradeId,
       };
     });
 
@@ -292,6 +296,9 @@ export async function POST(request: Request) {
         ? new Date(trade.timestamp * 1000).toISOString()
         : trade.match_time || trade.created_at || new Date().toISOString();
       
+      // Get trade ID for Polymarket URL tid parameter (use id if available, otherwise timestamp in ms)
+      const tradeId = trade.id || (trade.timestamp ? String(trade.timestamp * 1000) : undefined);
+      
       return {
         id: trade.transactionHash || trade.transaction_hash || trade.id || `trade-${index}-${Date.now()}`,
         type: "trade",
@@ -319,6 +326,7 @@ export async function POST(request: Request) {
         price: String(trade.price ?? "0.5"),
         timestamp: timestampStr,
         transactionHash: trade.transactionHash || trade.transaction_hash,
+        tradeId: tradeId,
       };
     });
 

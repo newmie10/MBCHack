@@ -54,12 +54,14 @@ export function FeedCard({ item }: FeedCardProps) {
       return;
     }
 
-    // If no contract deployed, just open the market
+    // If no contract deployed, just open the market with transaction ID
     if (!COPY_TRADE_ADDRESS) {
-      window.open(
-        `https://polymarket.com/event/${item.market.marketSlug}`,
-        "_blank"
-      );
+      // Use tradeId if available, otherwise fall back to timestamp in milliseconds
+      const tid = item.tradeId || new Date(item.timestamp).getTime().toString();
+      const url = item.market.marketSlug 
+        ? `https://polymarket.com/event/${item.market.marketSlug}?tid=${tid}`
+        : `https://polymarket.com/event/${item.market.conditionId}`;
+      window.open(url, "_blank");
       setCopyStatus("success");
       setTimeout(() => setCopyStatus("idle"), 2000);
       return;
@@ -169,7 +171,7 @@ export function FeedCard({ item }: FeedCardProps) {
 
       <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
         <div className="flex items-center gap-4 text-xs text-neutral-400">
-          <span>Vol {formatUSD(item.market.volume)}</span>
+          <span>Vol {formatUSD(parseFloat(item.market.volume || "0"))}</span>
           {item.transactionHash && (
             <a
               href={`https://polygonscan.com/tx/${item.transactionHash}`}
