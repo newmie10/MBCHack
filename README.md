@@ -34,6 +34,8 @@ A social media-style feed for prediction market activity. Follow top forecasters
 
 This project integrates **Polymarket's** prediction market data with an on-chain social graph stored on **Base Sepolia**, creating a unique social layer for the prediction market ecosystem.
 
+https://github.com/user-attachments/assets/567f6e8d-7263-41bc-bf34-36583e410177
+
 ## Features
 
 ### Core Features (MVP)
